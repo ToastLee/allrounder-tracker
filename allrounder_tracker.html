@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>올라운더 트래커 · 마비노기 모바일</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0f14;
+  --surface: #161920;
+  --surface2: #1e2230;
+  --surface3: #252a3a;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #f0f2f8;
+  --text2: #8a90a8;
+  --text3: #4a506a;
+  --accent: #7b6ef6;
+  --accent2: #a899ff;
+  --green: #2dd98a;
+  --green-bg: rgba(45,217,138,0.08);
+  --amber: #f5c542;
+  --amber-bg: rgba(245,197,66,0.08);
+  --red: #f56060;
+  --blue: #5b8ef5;
+  --blue-bg: rgba(91,142,245,0.08);
+  --r: 12px;
+  --r-sm: 8px;
+  --font: 'Noto Sans KR', sans-serif;
+  --mono: 'DM Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+#app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+@media(min-width:480px){#app{border-left:0.5px solid var(--border);border-right:0.5px solid var(--border);}}
+
+/* HEADER */
+.app-header{padding:20px 20px 0;position:sticky;top:0;z-index:100;background:var(--bg);}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.logo{font-size:11px;font-weight:700;letter-spacing:.18em;color:var(--accent2);text-transform:uppercase;}
+.goal-chip{font-family:var(--mono);font-size:11px;background:rgba(123,110,246,.15);border:.5px solid rgba(123,110,246,.3);color:var(--accent2);padding:4px 10px;border-radius:20px;}
+
+/* HERO */
+.hero{padding:0 20px 16px;background:var(--bg);}
+.hero-numbers{display:flex;align-items:baseline;gap:6px;margin-bottom:10px;}
+.hero-current{font-family:var(--mono);font-size:42px;font-weight:500;color:var(--text);line-height:1;transition:color .3s;}
+.hero-current.done{color:var(--green);}
+.hero-sep{font-size:18px;color:var(--text3);font-weight:300;}
+.hero-goal{font-family:var(--mono);font-size:18px;color:var(--text3);}
+.hero-pct{margin-left:auto;font-family:var(--mono);font-size:13px;color:var(--text2);}
+.big-bar{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-bottom:6px;}
+.big-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent) 0%,var(--green) 100%);transition:width .5s cubic-bezier(.4,0,.2,1);}
+.hero-sublabel{font-size:11px;color:var(--text3);display:flex;justify-content:space-between;}
+
+/* STAT STRIP */
+.stat-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 20px 16px;background:var(--bg);}
+.stat-card{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;}
+.sc-label{font-size:10px;color:var(--text3);letter-spacing:.05em;margin-bottom:4px;}
+.sc-val{font-family:var(--mono);font-size:18px;font-weight:500;}
+.sc-val.v-green{color:var(--green);}
+.sc-val.v-amber{color:var(--amber);}
+.sc-val.v-blue{color:var(--blue);}
+.sc-sub{font-size:10px;color:var(--text3);margin-top:2px;}
+
+/* NAV TABS */
+.nav-tabs{display:flex;background:var(--bg);border-bottom:.5px solid var(--border);padding:0 20px;position:sticky;top:52px;z-index:99;}
+.nav-tab{flex:1;text-align:center;font-size:12px;font-weight:500;padding:10px 0;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;letter-spacing:.03em;}
+.nav-tab.active{color:var(--accent2);border-bottom-color:var(--accent);}
+
+.tab-content{flex:1;overflow-y:auto;padding:16px 20px 120px;}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px;}
+
+/* CHAR SWITCHER */
+.char-switcher-wrap{margin-bottom:4px;}
+.char-switcher-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.char-count-label{font-size:11px;color:var(--text3);letter-spacing:.04em;}
+.char-count-ctrl{display:flex;align-items:center;gap:0;}
+.char-cnt-btn{
+  width:26px;height:26px;
+  border:.5px solid var(--border2);background:var(--surface2);
+  color:var(--text2);font-size:15px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .1s;user-select:none;
+}
+.char-cnt-btn:first-child{border-radius:6px 0 0 6px;}
+.char-cnt-btn:last-child{border-radius:0 6px 6px 0;}
+.char-cnt-btn:active{background:var(--surface3);color:var(--text);}
+.char-cnt-btn:disabled{opacity:.3;cursor:not-allowed;}
+.char-cnt-val{
+  font-family:var(--mono);font-size:13px;font-weight:500;
+  min-width:32px;text-align:center;
+  background:var(--surface2);
+  border-top:.5px solid var(--border2);border-bottom:.5px solid var(--border2);
+  padding:4px 0;color:var(--text);
+}
+.char-switcher{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
+.char-switcher::-webkit-scrollbar{display:none;}
+.char-pill{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;border:.5px solid var(--border2);background:var(--surface);cursor:pointer;transition:all .15s;font-size:12px;}
+.char-pill.active{cursor:default;}
+.char-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+/* inline rename input inside pill */
+.pill-name-input{
+  background:transparent;border:none;outline:none;
+  font-size:12px;font-family:var(--font);
+  color:inherit;width:60px;min-width:30px;
+  border-bottom:.5px solid currentColor;
+  padding:0;cursor:text;
+}
+.pill-rename-hint{font-size:9px;color:var(--text3);margin-top:2px;text-align:center;}
+
+/* SECTION HEADER (drag target zone) */
+.group-section{margin-bottom:4px;}
+.section-header{
+  font-size:10px;font-weight:700;letter-spacing:.12em;
+  color:var(--text3);text-transform:uppercase;
+  margin:16px 0 8px;
+  display:flex;align-items:center;gap:8px;
+}
+.section-header-label{flex:1;}
+.add-to-group-btn{
+  font-size:10px;padding:2px 8px;border-radius:4px;
+  border:.5px solid var(--border2);background:transparent;
+  color:var(--text3);cursor:pointer;font-family:var(--font);
+  transition:all .15s;
+}
+.add-to-group-btn:hover{border-color:var(--accent);color:var(--accent2);}
+
+/* DROP ZONE */
+.class-list{
+  display:flex;flex-direction:column;gap:6px;
+  min-height:40px;
+  border-radius:var(--r-sm);
+  transition:background .15s, border .15s;
+  padding:2px;
+}
+.class-list.drag-over{
+  background:rgba(123,110,246,.06);
+  border:.5px dashed rgba(123,110,246,.4);
+}
+
+/* CLASS ROW */
+.class-row{
+  background:var(--surface);
+  border:.5px solid var(--border);
+  border-radius:var(--r-sm);
+  padding:10px 10px 10px 8px;
+  display:flex;align-items:center;gap:8px;
+  transition:border-color .2s, opacity .15s, transform .15s;
+  cursor:default;
+}
+.class-row.has-level{border-color:rgba(123,110,246,.25);}
+.class-row.is-max{border-color:rgba(45,217,138,.3);background:rgba(45,217,138,.04);}
+.class-row.dragging{opacity:.4;transform:scale(.98);}
+
+/* drag handle */
+.drag-handle{
+  display:flex;flex-direction:column;gap:2.5px;
+  cursor:grab;padding:4px 4px 4px 2px;
+  flex-shrink:0;
+}
+.drag-handle:active{cursor:grabbing;}
+.drag-handle span{display:block;width:14px;height:1.5px;background:var(--text3);border-radius:1px;}
+
+.cr-name-wrap{flex:1;min-width:0;}
+.cr-name-input{font-size:13px;font-weight:500;background:transparent;border:none;outline:none;color:var(--text);width:100%;padding:0;}
+.cr-name-input::placeholder{color:var(--text3);}
+.cr-contrib{font-size:10px;color:var(--text3);margin-top:2px;display:flex;align-items:center;gap:4px;}
+.cr-contrib-dot{width:5px;height:5px;border-radius:50%;display:inline-block;}
+
+.cr-level-wrap{display:flex;align-items:center;gap:5px;}
+
+/* BADGE */
+.lv-badge{font-size:10px;font-weight:700;letter-spacing:.05em;padding:2px 7px;border-radius:4px;min-width:36px;text-align:center;}
+.lv-badge.max{background:var(--green-bg);color:var(--green);border:.5px solid rgba(45,217,138,.25);}
+.lv-badge.hi{background:var(--blue-bg);color:var(--blue);border:.5px solid rgba(91,142,245,.25);}
+.lv-badge.md{background:var(--amber-bg);color:var(--amber);border:.5px solid rgba(245,197,66,.25);}
+.lv-badge.lo{background:var(--surface2);color:var(--text3);border:.5px solid var(--border);}
+
+/* STEPPER — 1단위, 숫자 직접 입력 */
+.stepper{display:flex;align-items:center;}
+.step-btn{
+  width:26px;height:30px;
+  border:.5px solid var(--border2);
+  background:var(--surface2);
+  color:var(--text2);
+  font-size:15px;line-height:1;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .1s;user-select:none;
+}
+.step-btn:first-child{border-radius:6px 0 0 6px;}
+.step-btn:last-child{border-radius:0 6px 6px 0;}
+.step-btn:active{background:var(--surface3);color:var(--text);}
+/* editable number input in the middle */
+.step-val-input{
+  font-family:var(--mono);
+  font-size:13px;font-weight:500;
+  width:36px;text-align:center;
+  background:var(--surface2);
+  border-top:.5px solid var(--border2);
+  border-bottom:.5px solid var(--border2);
+  border-left:none;border-right:none;
+  padding:5px 2px;
+  color:var(--text);
+  outline:none;
+  -moz-appearance:textfield;
+}
+.step-val-input::-webkit-outer-spin-button,
+.step-val-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.step-val-input:focus{background:var(--surface3);color:var(--accent2);}
+
+.del-class-btn{width:22px;height:22px;background:transparent;border:.5px solid var(--border);border-radius:50%;color:var(--text3);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
+.del-class-btn:hover{border-color:var(--red);color:var(--red);}
+
+/* ADD CLASS BTN */
+.add-class-area{margin-top:10px;display:flex;gap:8px;align-items:center;}
+.add-class-input{
+  flex:1;padding:9px 12px;
+  background:var(--surface);border:.5px dashed var(--border2);
+  border-radius:var(--r-sm);color:var(--text);
+  font-size:13px;font-family:var(--font);outline:none;
+}
+.add-class-input::placeholder{color:var(--text3);}
+.add-class-input:focus{border-color:var(--accent);}
+.add-class-select{
+  padding:9px 8px;background:var(--surface);border:.5px solid var(--border2);
+  border-radius:var(--r-sm);color:var(--text2);font-size:12px;font-family:var(--font);
+  outline:none;cursor:pointer;
+}
+.add-class-btn{
+  padding:9px 14px;background:rgba(123,110,246,.15);
+  border:.5px solid rgba(123,110,246,.3);border-radius:var(--r-sm);
+  color:var(--accent2);font-size:12px;font-family:var(--font);cursor:pointer;
+  transition:all .15s;white-space:nowrap;
+}
+.add-class-btn:hover{background:rgba(123,110,246,.25);}
+
+/* CHARS TAB */
+.chars-grid{display:flex;flex-direction:column;gap:10px;}
+.char-card{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.char-card-header{padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:.5px solid var(--border);}
+.char-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;}
+.char-name-input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:14px;font-weight:500;font-family:var(--font);border-bottom:.5px solid transparent;padding:0 0 1px;transition:border-color .2s;}
+.char-name-input:focus{border-bottom-color:var(--accent);}
+.char-total{font-family:var(--mono);font-size:18px;font-weight:500;color:var(--accent2);}
+.char-body{padding:10px 14px;display:flex;flex-direction:column;gap:5px;}
+.char-class-row{display:flex;align-items:center;font-size:12px;padding:3px 0;border-bottom:.5px solid var(--border);}
+.char-class-row:last-child{border-bottom:none;}
+.ccr-name{flex:1;color:var(--text2);}
+.ccr-lv{font-family:var(--mono);font-size:13px;font-weight:500;}
+.ccr-lv.effective{color:var(--green);}
+.ccr-lv.shadow{color:var(--text3);}
+.ccr-tag{font-size:9px;margin-left:6px;background:var(--green-bg);color:var(--green);border-radius:3px;padding:1px 5px;}
+.char-empty{font-size:12px;color:var(--text3);padding:4px 0;}
+
+/* OPTIMIZER TAB */
+.opt-card{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;}
+.opt-card h3{font-size:13px;font-weight:700;margin-bottom:4px;letter-spacing:.03em;}
+.opt-sub{font-size:12px;color:var(--text2);margin-bottom:12px;}
+.opt-row{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface2);border-radius:var(--r-sm);margin-bottom:5px;font-size:12px;}
+.opt-row .or-name{flex:1;font-weight:500;}
+.or-from-to{color:var(--text2);font-family:var(--mono);font-size:11px;}
+.or-traces{font-size:11px;background:var(--amber-bg);color:var(--amber);border-radius:4px;padding:2px 6px;font-family:var(--mono);}
+.or-char-badge{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:700;}
+.dist-row{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border-radius:var(--r-sm);margin-bottom:5px;font-size:12px;}
+.dist-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.dist-name{font-weight:500;min-width:70px;}
+.dist-classes{flex:1;color:var(--text2);font-size:11px;}
+.dist-total{font-family:var(--mono);font-size:13px;color:var(--accent2);}
+.done-banner{background:var(--green-bg);border:.5px solid rgba(45,217,138,.3);border-radius:var(--r);padding:20px;text-align:center;margin-bottom:10px;}
+.db-icon{font-size:32px;margin-bottom:8px;}
+.db-title{font-size:16px;font-weight:700;color:var(--green);margin-bottom:4px;}
+.db-sub{font-size:12px;color:var(--text2);}
+
+/* DONATION BAR */
+.donation-bar{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:480px;
+  background:var(--surface);
+  border-top:.5px solid var(--border);
+  padding:10px 20px 14px;
+  display:flex;align-items:center;gap:8px;
+  z-index:200;
+}
+.donation-label{
+  font-size:11px;color:var(--text3);
+  flex-shrink:0;letter-spacing:.03em;
+}
+.donation-btn{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:8px 0;border-radius:var(--r-sm);
+  font-size:12px;font-weight:500;font-family:var(--font);
+  cursor:pointer;text-decoration:none;
+  border:.5px solid;
+  transition:opacity .15s;
+}
+.donation-btn:active{opacity:.7;}
+.donation-btn.kakao{
+  background:#FEE500;color:#1a1300;
+  border-color:rgba(0,0,0,.08);
+}
+.donation-btn.toon{
+  background:rgba(99,102,241,.15);color:#a5b4fc;
+  border-color:rgba(99,102,241,.3);
+}
+.donation-btn svg{width:14px;height:14px;flex-shrink:0;}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .2s ease forwards;}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+.pulse{animation:pulse .2s ease;}
+
+/* DRAG GHOST */
+.drag-ghost{
+  position:fixed;pointer-events:none;z-index:9999;
+  background:var(--surface3);border:.5px solid var(--accent);
+  border-radius:var(--r-sm);padding:8px 12px;
+  font-size:13px;font-weight:500;color:var(--accent2);
+  opacity:.9;transform:rotate(2deg);
+  box-shadow:0 8px 24px rgba(0,0,0,.5);
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="app-header">
+    <div class="header-top">
+      <span class="logo">Allrounder</span>
+      <span class="goal-chip">목표 1,205</span>
+    </div>
+  </div>
+  <div class="hero" id="hero-section"></div>
+  <div class="stat-strip" id="stat-strip"></div>
+  <div class="nav-tabs">
+    <div class="nav-tab active" data-tab="classes">클래스</div>
+    <div class="nav-tab" data-tab="chars">캐릭터</div>
+    <div class="nav-tab" data-tab="optimizer">최적화</div>
+  </div>
+  <div class="tab-content" id="tab-content"></div>
+</div>
+
+<!-- DRAG GHOST -->
+<div class="drag-ghost" id="drag-ghost" style="display:none;"></div>
+
+<!-- DONATION BAR -->
+<div class="donation-bar">
+  <span class="donation-label">☕ 후원</span>
+  <a class="donation-btn kakao" href="https://open.kakao.com/o/sXt1sZwc" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.477 3 2 6.477 2 10.8c0 2.7 1.6 5.1 4 6.6l-1 3.7 4.3-2.8c.9.1 1.8.2 2.7.2 5.523 0 10-3.477 10-7.8S17.523 3 12 3z"/></svg>
+    카카오페이 송금
+  </a>
+  <a class="donation-btn toon" href="https://toon.at/donate/freudeharam" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    투네이션 후원
+  </a>
+</div>
+
+<script>
+const GOAL=1205, MAX_LV=65;
+const CHAR_COLORS=['#7b6ef6','#2dd98a','#f5c542','#f56060','#5b8ef5','#e879c0'];
+function hexToRgb(hex){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return{r,g,b};}
+
+// ── STATE ──
+const MAX_CHARS=6;
+// Pool of all 6 possible chars — we always keep all 6 but only use first charCount
+let state={
+  currentTab:'classes',
+  activeCharIdx:0,
+  charCount:1,
+  chars:[
+    {name:'캐릭터 1',classes:{}},{name:'캐릭터 2',classes:{}},
+    {name:'캐릭터 3',classes:{}},{name:'캐릭터 4',classes:{}},
+    {name:'캐릭터 5',classes:{}},{name:'캐릭터 6',classes:{}}
+  ],
+  classes:[
+    {id:'c1',name:'전사',group:'전사 계열'},
+    {id:'c2',name:'대검전사',group:'전사 계열'},
+    {id:'c3',name:'수호자',group:'전사 계열'},
+    {id:'c4',name:'궁수',group:'궁수 계열'},
+    {id:'c5',name:'석궁사수',group:'궁수 계열'},
+    {id:'c6',name:'장궁병',group:'궁수 계열'},
+    {id:'c7',name:'마법사',group:'마법사 계열'},
+    {id:'c8',name:'화염술사',group:'마법사 계열'},
+    {id:'c9',name:'전격술사',group:'마법사 계열'},
+    {id:'c10',name:'힐러',group:'힐러 계열'},
+    {id:'c11',name:'성직자',group:'힐러 계열'},
+    {id:'c12',name:'암흑술사',group:'힐러 계열'},
+    {id:'c13',name:'도적',group:'도적 계열'},
+    {id:'c14',name:'암살자',group:'도적 계열'},
+    {id:'c15',name:'음유시인',group:'음유시인 계열'},
+  ]
+};
+
+function loadState(){try{const s=localStorage.getItem('allrounder_v3');if(s){const p=JSON.parse(s);Object.assign(state,p);if(!state.charCount)state.charCount=state.chars.filter(c=>Object.keys(c.classes).length>0).length||1;}}catch(e){}}
+function saveState(){try{localStorage.setItem('allrounder_v3',JSON.stringify(state));}catch(e){}}
+// Only chars 0..charCount-1 are active
+function activeChars(){return state.chars.slice(0,state.charCount);}
+loadState();
+// Clamp activeCharIdx
+if(state.activeCharIdx>=state.charCount) state.activeCharIdx=0;
+
+// ── COMPUTED ──
+function getEffective(){
+  const eff={};
+  state.classes.forEach(c=>{
+    let max=0,maxChar=-1;
+    activeChars().forEach((ch,i)=>{const lv=ch.classes[c.id]||0;if(lv>max){max=lv;maxChar=i;}});
+    eff[c.id]={lv:max,charIdx:maxChar};
+  });
+  return eff;
+}
+function getTotal(){const eff=getEffective();return Object.values(eff).reduce((a,b)=>a+b.lv,0);}
+function getCharTotal(idx){
+  const eff=getEffective();
+  return state.classes.reduce((sum,c)=>{const e=eff[c.id];return sum+(e.charIdx===idx?e.lv:0);},0);
+}
+const TRACES=[0,100,200,350,550,800,1100,1500,2000,2600,3300,4100,5000,6100,7300,8700,
+  10300,12100,14100,16400,19000,21900,25100,28600,32500,36700,41300,46300,51700,57500,63700,
+  70400,77500,85100,93200,101800,110900,120500,130600,141200,152300,163900,176000,188600,
+  201700,215300,229400,243900,258900,274400,290300,306700,323600,340900,358700,377000,395700,
+  414900,434600,454700,475300,15000,16000,17000,17000,7715];
+function calcTraces(from,to){let t=0;for(let i=from;i<to&&i<TRACES.length;i++)t+=TRACES[i];return t;}
+
+// ── RENDER HERO ──
+function renderHero(){
+  const total=getTotal(),pct=Math.min(100,Math.round(total/GOAL*100)),remain=Math.max(0,GOAL-total),done=total>=GOAL;
+  const eff=getEffective();
+  const maxCount=Object.values(eff).filter(e=>e.lv>=MAX_LV).length;
+  const activeCount=Object.values(eff).filter(e=>e.lv>0).length;
+  document.getElementById('hero-section').innerHTML=`
+    <div class="hero-numbers">
+      <span class="hero-current${done?' done':''}">${total.toLocaleString()}</span>
+      <span class="hero-sep">/</span>
+      <span class="hero-goal">${GOAL.toLocaleString()}</span>
+      <span class="hero-pct">${pct}%</span>
+    </div>
+    <div class="big-bar"><div class="big-bar-fill" style="width:${pct}%"></div></div>
+    <div class="hero-sublabel">
+      <span>${done?'🏆 올라운더 달성!':`${remain.toLocaleString()} 남음`}</span>
+      <span>MAX ${maxCount}개 · 진행중 ${activeCount}개</span>
+    </div>`;
+  document.getElementById('stat-strip').innerHTML=`
+    <div class="stat-card"><div class="sc-label">합산 레벨</div><div class="sc-val v-${done?'green':'blue'}">${total}</div><div class="sc-sub">/ ${GOAL}</div></div>
+    <div class="stat-card"><div class="sc-label">남은 레벨</div><div class="sc-val v-amber">${remain}</div><div class="sc-sub">달성까지</div></div>
+    <div class="stat-card"><div class="sc-label">MAX 클래스</div><div class="sc-val v-green">${maxCount}</div><div class="sc-sub">/ ${state.classes.length}개</div></div>`;
+}
+
+// ── RENDER CLASSES TAB ──
+function renderClassesTab(){
+  const eff=getEffective();
+  const groups=[...new Set(state.classes.map(c=>c.group))];
+  const ch=state.chars[state.activeCharIdx];
+
+  let html='';
+
+  // char count controls + switcher
+  const canRemove=state.charCount>1;
+  const canAdd=state.charCount<MAX_CHARS;
+  html+=`<div class="char-switcher-wrap">
+    <div class="char-switcher-top">
+      <span class="char-count-label">캐릭터 수</span>
+      <div class="char-count-ctrl">
+        <button class="char-cnt-btn" onclick="changeCharCount(-1)" ${canRemove?'':'disabled'}>−</button>
+        <div class="char-cnt-val">${state.charCount}</div>
+        <button class="char-cnt-btn" onclick="changeCharCount(+1)" ${canAdd?'':'disabled'}>+</button>
+      </div>
+    </div>
+    <div class="char-switcher">`;
+  activeChars().forEach((c,i)=>{
+    const rgb=hexToRgb(CHAR_COLORS[i]);
+    const active=i===state.activeCharIdx;
+    const displayName=c.name||`캐릭터 ${i+1}`;
+    if(active){
+      html+=`<div class="char-pill active"
+        style="background:rgba(${rgb.r},${rgb.g},${rgb.b},.2);border-color:${CHAR_COLORS[i]};color:${CHAR_COLORS[i]}"
+        onclick="focusPillInput(this)">
+        <div class="char-dot" style="background:${CHAR_COLORS[i]}"></div>
+        <span class="pill-label">${displayName}</span>
+        <input class="pill-name-input" value="${displayName}"
+          style="display:none"
+          onclick="event.stopPropagation()"
+          onchange="renameChar(${i},this.value)"
+          onblur="blurPillInput(this,${i})"
+          onkeydown="if(event.key==='Enter')this.blur()"
+          maxlength="10">
+      </div>`;
+    } else {
+      html+=`<div class="char-pill" onclick="setActiveChar(${i})">
+        <div class="char-dot" style="background:${CHAR_COLORS[i]}"></div>${displayName}</div>`;
+    }
+  });
+  html+='</div></div>';
+
+  groups.forEach(g=>{
+    const gClasses=state.classes.filter(c=>c.group===g);
+    html+=`<div class="group-section" data-group="${g}">
+      <div class="section-header">
+        <span class="section-header-label">${g}</span>
+        <button class="add-to-group-btn" onclick="addClassToGroup('${g}')">+ 추가</button>
+      </div>
+      <div class="class-list" data-group="${g}" 
+        ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'${g}')">`;
+
+    gClasses.forEach(c=>{
+      const myLv=ch.classes[c.id]||0;
+      const effData=eff[c.id];
+      const effLv=effData.lv,effChar=effData.charIdx;
+      const isContrib=effLv>0&&effChar===state.activeCharIdx;
+
+      let badge='';
+      if(myLv>=65) badge=`<span class="lv-badge max">MAX</span>`;
+      else if(myLv>=45) badge=`<span class="lv-badge hi">Lv${myLv}</span>`;
+      else if(myLv>=20) badge=`<span class="lv-badge md">Lv${myLv}</span>`;
+      else if(myLv>0)   badge=`<span class="lv-badge lo">Lv${myLv}</span>`;
+      else badge=`<span class="lv-badge lo">-</span>`;
+
+      let contribHtml='';
+      if(effLv>0){
+        const cName=state.chars[effChar].name||`캐릭터 ${effChar+1}`;
+        const dot=`<span class="cr-contrib-dot" style="background:${CHAR_COLORS[effChar]}"></span>`;
+        contribHtml=isContrib
+          ?`<div class="cr-contrib">${dot}이 캐릭이 대표 (Lv${effLv})</div>`
+          :`<div class="cr-contrib">${dot}${cName}이 대표 (Lv${effLv})</div>`;
+      }
+
+      html+=`<div class="class-row${myLv>0?' has-level':''}${myLv>=65?' is-max':''}"
+        draggable="true"
+        data-id="${c.id}"
+        ondragstart="onDragStart(event,'${c.id}')"
+        ondragend="onDragEnd(event)">
+        <div class="drag-handle" title="드래그로 계열 이동">
+          <span></span><span></span><span></span>
+        </div>
+        <div class="cr-name-wrap">
+          <input class="cr-name-input" value="${c.name}" placeholder="클래스명"
+            onchange="renameClass('${c.id}',this.value)"
+            onclick="event.stopPropagation()">
+          ${contribHtml}
+        </div>
+        <div class="cr-level-wrap">
+          ${badge}
+          <div class="stepper">
+            <button class="step-btn" onpointerdown="startHold('${c.id}',-1)" onpointerup="stopHold()" onpointerleave="stopHold()" onclick="event.preventDefault()">−</button>
+            <input class="step-val-input" type="number" min="0" max="65" value="${myLv}"
+              id="sv-${c.id}"
+              onchange="setLevelDirect('${c.id}',+this.value)"
+              onblur="commitLevel('${c.id}',+this.value)"
+              onfocus="this.select()"
+              onclick="event.stopPropagation()">
+            <button class="step-btn" onpointerdown="startHold('${c.id}',+1)" onpointerup="stopHold()" onpointerleave="stopHold()" onclick="event.preventDefault()">+</button>
+          </div>
+          <button class="del-class-btn" onclick="deleteClass('${c.id}')" title="삭제">×</button>
+        </div>
+      </div>`;
+    });
+
+    html+='</div></div>';
+  });
+
+  // Add new class area
+  const groupOpts=groups.map(g=>`<option value="${g}">${g}</option>`).join('');
+  html+=`<div class="add-class-area">
+    <input class="add-class-input" id="new-class-name" placeholder="새 클래스명 입력..." maxlength="20"
+      onkeydown="if(event.key==='Enter')doAddClass()">
+    <select class="add-class-select" id="new-class-group">${groupOpts}<option value="__new__">+ 새 계열</option></select>
+    <button class="add-class-btn" onclick="doAddClass()">추가</button>
+  </div>`;
+
+  document.getElementById('tab-content').innerHTML=`<div class="fade-in">${html}</div>`;
+}
+
+// ── RENDER CHARS TAB ──
+function renderCharsTab(){
+  const eff=getEffective();
+  let html='<div class="chars-grid fade-in">';
+  activeChars().forEach((ch,i)=>{
+    const rgb=hexToRgb(CHAR_COLORS[i]);
+    const total=getCharTotal(i);
+    const myClasses=state.classes.filter(c=>(ch.classes[c.id]||0)>0);
+    html+=`<div class="char-card">
+      <div class="char-card-header">
+        <div class="char-avatar" style="background:rgba(${rgb.r},${rgb.g},${rgb.b},.2);color:${CHAR_COLORS[i]}">${(ch.name||'C').charAt(0).toUpperCase()}</div>
+        <input class="char-name-input" value="${ch.name}" placeholder="캐릭터 이름" onchange="renameChar(${i},this.value)">
+        <div class="char-total">${total}</div>
+      </div>
+      <div class="char-body">`;
+    if(!myClasses.length){html+=`<div class="char-empty">클래스탭에서 레벨을 입력하세요</div>`;}
+    else{myClasses.forEach(c=>{
+      const myLv=ch.classes[c.id]||0;
+      const isEff=eff[c.id].charIdx===i;
+      html+=`<div class="char-class-row">
+        <span class="ccr-name">${c.name}</span>
+        <span class="ccr-lv ${isEff?'effective':'shadow'}">${myLv}${isEff?'<span class="ccr-tag">대표</span>':''}</span>
+      </div>`;
+    });}
+    html+=`</div></div>`;
+  });
+  html+='</div>';
+  document.getElementById('tab-content').innerHTML=html;
+}
+
+// ── RENDER OPTIMIZER TAB ──
+function renderOptimizerTab(){
+  const total=getTotal(),remain=GOAL-total;
+  const eff=getEffective();
+  let html='<div class="fade-in">';
+
+  if(total>=GOAL){
+    html+=`<div class="done-banner"><div class="db-icon">🏆</div><div class="db-title">올라운더 달성 완료!</div><div class="db-sub">합산 레벨 ${total.toLocaleString()} · 목표 ${GOAL.toLocaleString()} 초과</div></div>`;
+  } else {
+    const notMax=state.classes.map(c=>({...c,cur:eff[c.id].lv})).filter(c=>c.cur<MAX_LV).sort((a,b)=>b.cur-a.cur);
+    let left=remain; const plan=[];
+    for(const c of notMax){if(left<=0)break;const bump=Math.min(left,MAX_LV-c.cur);const to=c.cur+bump;plan.push({name:c.name,from:c.cur,to:Math.round(to),traces:calcTraces(c.cur,Math.round(to))});left-=bump;}
+    const totalTraces=plan.reduce((a,b)=>a+b.traces,0);
+    html+=`<div class="opt-card"><h3>최단거리 달성 플랜</h3><div class="opt-sub">현재 ${total} → 목표 ${GOAL} (+${remain} 필요)</div>`;
+    plan.forEach(p=>{html+=`<div class="opt-row"><span class="or-name">${p.name}</span><span class="or-from-to">${p.from}→${p.to}</span><span class="or-traces">정흔 ~${p.traces.toLocaleString()}</span></div>`;});
+    html+=`<div style="margin-top:10px;padding-top:10px;border-top:.5px solid var(--border);font-size:12px;color:var(--text2)">
+      총 예상 정령의 흔적 <span style="font-family:var(--mono);color:var(--amber)">${totalTraces.toLocaleString()}</span>개
+      <span style="color:var(--text3)"> (경험치 사냥 시 절감 가능)</span></div></div>`;
+  }
+
+  // distribution
+  const byChar={};activeChars().forEach((_,i)=>byChar[i]=[]);const unassigned=[];
+  state.classes.forEach(c=>{const e=eff[c.id];if(e.charIdx>=0)byChar[e.charIdx].push(c.name);else unassigned.push(c.name);});
+  html+=`<div class="opt-card"><h3>${state.charCount}캐릭 분배 현황</h3><div class="opt-sub">초록색 = 합산에 기여 중인 클래스</div>`;
+  activeChars().forEach((ch,i)=>{
+    const rgb=hexToRgb(CHAR_COLORS[i]);
+    html+=`<div class="dist-row">
+      <div class="dist-dot" style="background:${CHAR_COLORS[i]}"></div>
+      <span class="dist-name">${ch.name||`캐릭터 ${i+1}`}</span>
+      <span class="dist-classes">${byChar[i].length>0?byChar[i].join(' · '):'미배정'}</span>
+      <span class="dist-total">${getCharTotal(i)}</span>
+    </div>`;
+  });
+  if(unassigned.length>0){html+=`<div style="margin-top:8px;font-size:11px;color:var(--text3)">미배정: ${unassigned.join(', ')}</div>`;}
+
+  const remainClasses=state.classes.filter(c=>eff[c.id].lv===0);
+  if(remainClasses.length>0){
+    html+=`<div style="margin-top:10px;padding-top:10px;border-top:.5px solid var(--border)"><div style="font-size:11px;color:var(--text2);margin-bottom:6px">레벨 없는 클래스 배정 추천</div>`;
+    const charLoads=activeChars().map((_,i)=>({i,count:byChar[i].length})).sort((a,b)=>a.count-b.count);
+    remainClasses.forEach((c,idx)=>{
+      const t=charLoads[idx%state.charCount];const tName=state.chars[t.i].name||`캐릭터 ${t.i+1}`;
+      const rgb=hexToRgb(CHAR_COLORS[t.i]);
+      html+=`<div class="opt-row"><span class="or-name">${c.name}</span><span style="color:var(--text2);font-size:11px">→</span>
+        <span class="or-char-badge" style="background:rgba(${rgb.r},${rgb.g},${rgb.b},.2);color:${CHAR_COLORS[t.i]}">${tName}</span></div>`;
+    });
+    html+=`</div>`;
+  }
+  html+=`</div></div>`;
+  document.getElementById('tab-content').innerHTML=html;
+}
+
+// ── DRAG & DROP ──
+let dragId=null, ghost=null;
+
+function onDragStart(e, classId){
+  dragId=classId;
+  const c=state.classes.find(x=>x.id===classId);
+  ghost=document.getElementById('drag-ghost');
+  ghost.textContent=c?c.name:'';
+  ghost.style.display='block';
+  e.dataTransfer.effectAllowed='move';
+  e.dataTransfer.setDragImage(new Image(),0,0); // hide default ghost
+  e.currentTarget.classList.add('dragging');
+}
+
+document.addEventListener('dragover',e=>{
+  if(!ghost) return;
+  ghost.style.left=(e.clientX+12)+'px';
+  ghost.style.top=(e.clientY+12)+'px';
+});
+
+function onDragEnd(e){
+  e.currentTarget.classList.remove('dragging');
+  if(ghost) ghost.style.display='none';
+  document.querySelectorAll('.class-list.drag-over').forEach(el=>el.classList.remove('drag-over'));
+  dragId=null;
+}
+function onDragOver(e){e.preventDefault();e.currentTarget.classList.add('drag-over');}
+function onDragLeave(e){e.currentTarget.classList.remove('drag-over');}
+function onDrop(e, newGroup){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if(!dragId) return;
+  const c=state.classes.find(x=>x.id===dragId);
+  if(c && c.group!==newGroup){
+    c.group=newGroup;
+    saveState();
+    renderClassesTab();
+  }
+  dragId=null;
+}
+
+// ── HOLD-TO-REPEAT (long press +/−) ──
+let holdTimer=null, holdInterval=null;
+function startHold(classId, dir){
+  stepLevel(classId, dir);
+  holdTimer=setTimeout(()=>{holdInterval=setInterval(()=>stepLevel(classId,dir),80);},400);
+}
+function stopHold(){
+  clearTimeout(holdTimer); clearInterval(holdInterval);
+  holdTimer=null; holdInterval=null;
+}
+
+// ── ACTIONS ──
+function setActiveChar(i){state.activeCharIdx=i;saveState();renderHero();renderClassesTab();}
+
+function changeCharCount(dir){
+  const next=state.charCount+dir;
+  if(next<1||next>MAX_CHARS) return;
+  // warn if removing a char that has data
+  if(dir<0){
+    const removing=state.chars[state.charCount-1];
+    const hasData=Object.values(removing.classes||{}).some(v=>v>0);
+    if(hasData && !confirm(`${removing.name||`캐릭터 ${state.charCount}`}의 클래스 데이터가 있습니다.\n캐릭터를 줄이면 해당 캐릭터는 합산에서 제외됩니다. (데이터는 보존)\n계속하시겠습니까?`)) return;
+  }
+  state.charCount=next;
+  if(state.activeCharIdx>=state.charCount) state.activeCharIdx=state.charCount-1;
+  saveState(); rerender();
+}
+
+function stepLevel(classId, dir){
+  const ch=state.chars[state.activeCharIdx];
+  const cur=ch.classes[classId]||0;
+  const newLv=Math.min(MAX_LV, Math.max(0, cur+dir));
+  ch.classes[classId]=newLv;
+  saveState();
+  const inp=document.getElementById('sv-'+classId);
+  if(inp){inp.value=newLv;inp.classList.add('pulse');setTimeout(()=>inp.classList.remove('pulse'),200);}
+  renderHero();
+  // update the row class and badge without full re-render
+  const row=inp?inp.closest('.class-row'):null;
+  if(row){
+    row.className='class-row'+(newLv>0?' has-level':'')+(newLv>=MAX_LV?' is-max':'');
+    // update badge
+    const bw=row.querySelector('.lv-badge');
+    if(bw){
+      if(newLv>=65){bw.className='lv-badge max';bw.textContent='MAX';}
+      else if(newLv>=45){bw.className='lv-badge hi';bw.textContent='Lv'+newLv;}
+      else if(newLv>=20){bw.className='lv-badge md';bw.textContent='Lv'+newLv;}
+      else if(newLv>0){bw.className='lv-badge lo';bw.textContent='Lv'+newLv;}
+      else{bw.className='lv-badge lo';bw.textContent='-';}
+    }
+    // update contrib
+    const eff=getEffective();const effData=eff[classId];
+    const contribEl=row.querySelector('.cr-contrib');
+    if(contribEl){
+      if(effData.lv>0){
+        const cName=state.chars[effData.charIdx].name||`캐릭터 ${effData.charIdx+1}`;
+        const dotColor=CHAR_COLORS[effData.charIdx];
+        const isContrib=effData.charIdx===state.activeCharIdx;
+        contribEl.innerHTML=`<span class="cr-contrib-dot" style="background:${dotColor}"></span>${isContrib?'이 캐릭이 대표 (Lv'+effData.lv+')':cName+'이 대표 (Lv'+effData.lv+')'}`;
+      } else {contribEl.innerHTML='';}
+    }
+  }
+}
+
+function setLevelDirect(classId, val){
+  if(isNaN(val)) return;
+  const clamped=Math.min(MAX_LV,Math.max(0,val));
+  const ch=state.chars[state.activeCharIdx];
+  ch.classes[classId]=clamped;
+  saveState();
+  renderHero();
+}
+function commitLevel(classId, val){
+  if(isNaN(val)) return;
+  const clamped=Math.min(MAX_LV,Math.max(0,val));
+  const inp=document.getElementById('sv-'+classId);
+  if(inp) inp.value=clamped;
+  setLevelDirect(classId, clamped);
+  // refresh row styling
+  const row=inp?inp.closest('.class-row'):null;
+  if(row){
+    row.className='class-row'+(clamped>0?' has-level':'')+(clamped>=MAX_LV?' is-max':'');
+    const bw=row.querySelector('.lv-badge');
+    if(bw){
+      if(clamped>=65){bw.className='lv-badge max';bw.textContent='MAX';}
+      else if(clamped>=45){bw.className='lv-badge hi';bw.textContent='Lv'+clamped;}
+      else if(clamped>=20){bw.className='lv-badge md';bw.textContent='Lv'+clamped;}
+      else if(clamped>0){bw.className='lv-badge lo';bw.textContent='Lv'+clamped;}
+      else{bw.className='lv-badge lo';bw.textContent='-';}
+    }
+  }
+}
+
+function renameClass(id, name){const c=state.classes.find(c=>c.id===id);if(c){c.name=name;saveState();}}
+function focusPillInput(pill){
+  const label=pill.querySelector('.pill-label');
+  const input=pill.querySelector('.pill-name-input');
+  if(!input||!label) return;
+  label.style.display='none';
+  input.style.display='';
+  input.focus();
+  input.select();
+}
+function blurPillInput(input,i){
+  const val=input.value.trim()||`캐릭터 ${i+1}`;
+  renameChar(i,val);
+  const label=input.previousElementSibling; // .pill-label
+  if(label){label.textContent=val;label.style.display='';}
+  input.style.display='none';
+}
+function renameChar(i,name){
+  const trimmed=name.trim()||`캐릭터 ${i+1}`;
+  state.chars[i].name=trimmed;
+  saveState();
+  renderHero();
+}
+
+function deleteClass(id){
+  if(state.classes.length<=1) return;
+  if(!confirm('이 클래스를 삭제하시겠습니까?')) return;
+  state.classes=state.classes.filter(c=>c.id!==id);
+  state.chars.forEach(ch=>delete ch.classes[id]);
+  saveState(); rerender();
+}
+
+function addClassToGroup(group){
+  const name=prompt('새 클래스 이름을 입력하세요:','');
+  if(!name||!name.trim()) return;
+  const newId='c'+Date.now();
+  state.classes.push({id:newId,name:name.trim(),group});
+  saveState(); renderClassesTab();
+}
+
+function doAddClass(){
+  const nameEl=document.getElementById('new-class-name');
+  const groupEl=document.getElementById('new-class-group');
+  if(!nameEl||!groupEl) return;
+  const name=nameEl.value.trim();
+  if(!name){nameEl.focus();return;}
+  let group=groupEl.value;
+  if(group==='__new__'){
+    const ng=prompt('새 계열 이름을 입력하세요:','');
+    if(!ng||!ng.trim()) return;
+    group=ng.trim();
+  }
+  const newId='c'+Date.now();
+  state.classes.push({id:newId,name,group});
+  saveState();
+  renderClassesTab();
+  setTimeout(()=>{
+    const el=document.getElementById('new-class-name');
+    if(el){el.value='';el.focus();}
+  },50);
+}
+
+function rerender(){
+  renderHero();
+  if(state.currentTab==='classes') renderClassesTab();
+  else if(state.currentTab==='chars') renderCharsTab();
+  else renderOptimizerTab();
+}
+
+// ── NAV ──
+document.querySelectorAll('.nav-tab').forEach(el=>{
+  el.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+    el.classList.add('active');
+    state.currentTab=el.dataset.tab;
+    saveState(); rerender();
+  });
+});
+
+rerender();
+</script>
+</body>
+</html>
